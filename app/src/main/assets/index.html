@@ -2453,9 +2453,26 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
     }
     tunerFrame = requestAnimationFrame(tunerLoop);
   }
+  window.onNativeMicPermissionResult = function(granted) {
+    if (granted) {
+      $("tunerError").textContent = "";
+      startTuner();
+    } else {
+      $("tunerError").textContent = tr("tunerPermission") + " Android Ayarlar > Uygulamalar > RockJazz MetroTuner > İzinler > Mikrofon bölümünden izin verin.";
+    }
+  };
+
   async function startTuner() {
     if (tunerRunning) return;
     $("tunerError").textContent = "";
+    const nativeBridge = window.MetroTunerBridge;
+    if (nativeBridge && typeof nativeBridge.hasRecordAudioPermission === "function"
+        && typeof nativeBridge.requestRecordAudioPermission === "function"
+        && !nativeBridge.hasRecordAudioPermission()) {
+      $("tunerError").textContent = "Mikrofon izni isteniyor…";
+      nativeBridge.requestRecordAudioPermission();
+      return;
+    }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext) {
       $("tunerError").textContent = tr("tunerSecure") + " Mikrofon için HTTPS adresi veya yerel Android uygulaması gerekir.";
       return;
@@ -2505,7 +2522,18 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
       $("tunerError").textContent = "";
       tunerFrame = requestAnimationFrame(tunerLoop);
     } catch (error) {
-      let message = error && error.name === "NotAllowedError" ? tr("tunerPermission") + " Android uygulama bilgileri > İzinler > Mikrofon bölümünden bu siteye izin verip sayfayı yeniden açın." : tr("tunerMicStartError") + (error.message || error);
+      const errorName = error && error.name ? error.name : "UnknownError";
+      const errorMessage = error && error.message ? error.message : String(error);
+      let message;
+      if (errorName === "NotAllowedError" || errorName === "SecurityError") {
+        message = tr("tunerPermission") + " Android Ayarlar > Uygulamalar > RockJazz MetroTuner > İzinler > Mikrofon bölümünü kontrol edin.";
+      } else if (errorName === "NotFoundError" || errorName === "DevicesNotFoundError") {
+        message = "Mikrofon bulunamadı. Telefonun mikrofonunu kullanan diğer uygulamaları kapatıp yeniden deneyin.";
+      } else if (errorName === "NotReadableError" || errorName === "TrackStartError" || errorName === "AbortError") {
+        message = "Mikrofon başka bir uygulama tarafından kullanılıyor veya açılamıyor. Diğer ses uygulamalarını kapatıp yeniden deneyin.";
+      } else {
+        message = tr("tunerMicStartError") + errorName + ": " + errorMessage;
+      }
       $("tunerError").textContent = message;
       stopTuner();
     }
@@ -2609,7 +2637,7 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
       $("tunerView").hidden = false;
       $("showTunerBtn").classList.add("active");
       $("showMetronomeBtn").classList.remove("active");
-      if (!tunerRunning) startTuner();
+      // Mikrofon, kullanıcının akort ekranındaki başlat düğmesine basmasıyla açılır.
     } else {
       stopTuner();
       $("tunerView").hidden = true;

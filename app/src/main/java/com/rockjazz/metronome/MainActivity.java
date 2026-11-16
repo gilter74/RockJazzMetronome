@@ -27,6 +27,7 @@ public class MainActivity extends Activity {
 
     private WebView webView;
     private PermissionRequest pendingAudioRequest;
+    private boolean pendingNativeMicCallback = false;
     private WebViewAssetLoader assetLoader;
     private BroadcastReceiver stopReceiver;
 
@@ -137,13 +138,28 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_AUDIO_PERMISSION && pendingAudioRequest != null) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                pendingAudioRequest.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
-            } else {
-                pendingAudioRequest.deny();
+        if (requestCode == REQUEST_AUDIO_PERMISSION) {
+            boolean granted = grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+
+            if (pendingAudioRequest != null) {
+                try {
+                    if (granted) {
+                        pendingAudioRequest.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
+                    } else {
+                        pendingAudioRequest.deny();
+                    }
+                } catch (RuntimeException ignored) {
+                    // The WebView may have cancelled the request while Android displayed its permission dialog.
+                }
+                pendingAudioRequest = null;
             }
-            pendingAudioRequest = null;
+
+            if (pendingNativeMicCallback && webView != null) {
+                pendingNativeMicCallback = false;
+                webView.evaluateJavascript(
+                        "window.onNativeMicPermissionResult && window.onNativeMicPermissionResult(" + granted + ")", null);
+            }
         }
     }
 
@@ -189,6 +205,25 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public boolean isAndroidApp() {
             return true;
+        }
+
+        @JavascriptInterface
+        public boolean hasRecordAudioPermission() {
+            return Build.VERSION.SDK_INT < 23
+                    || checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface
+        public void requestRecordAudioPermission() {
+            runOnUiThread(() -> {
+                if (Build.VERSION.SDK_INT < 23
+                        || checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                    webView.evaluateJavascript("window.onNativeMicPermissionResult && window.onNativeMicPermissionResult(true)", null);
+                } else {
+                    pendingNativeMicCallback = true;
+                    requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_AUDIO_PERMISSION);
+                }
+            });
         }
 
         @JavascriptInterface
