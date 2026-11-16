@@ -5,10 +5,10 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.rockjazz.metronome"
+        applicationId = "com.rockjazz.metrotuner"
         minSdk = 23
         targetSdk = 35
-        versionCode = 38
+        versionCode = 1
         versionName = "3.8.0"
     }
 
