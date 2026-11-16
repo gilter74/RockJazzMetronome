@@ -867,7 +867,7 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
 
       <div class="tuner-string-list" id="tunerStringList"></div>
       <div class="tuner-actions">
-        <span class="tuner-start-btn" id="startTunerBtn" aria-live="polite" data-i18n="startTuner">OTOMATİK DİNLEME</span>
+        <button class="tuner-start-btn" id="startTunerBtn" type="button" aria-live="polite" data-i18n="startTuner">OTOMATİK DİNLEME</button>
         <button class="secondary-btn" id="stopTunerBtn" type="button" disabled data-i18n="stopTuner">DURDUR</button>
       </div>
       <p class="privacy-note" data-i18n="tunerPrivacy">Mikrofon sesi kaydedilmez veya internete gönderilmez; analiz bu cihazda yapılır.</p>
@@ -2462,7 +2462,7 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
     }
     try {
       tunerStream = await navigator.mediaDevices.getUserMedia({
-        audio:{channelCount:{ideal:1},sampleRate:{ideal:48000},echoCancellation:false,noiseSuppression:true,autoGainControl:true},
+        audio:{channelCount:{ideal:1},sampleRate:{ideal:48000},echoCancellation:false,noiseSuppression:false,autoGainControl:false},
         video:false
       });
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -2670,6 +2670,7 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
     $("tunerProfile").addEventListener("change",changeTunerProfile);
     $("chromaticModeBtn").addEventListener("click",() => setTunerMode("chromatic"));
     $("stringModeBtn").addEventListener("click",() => setTunerMode("strings"));
+    $("startTunerBtn").addEventListener("click",() => { if (tunerRunning) stopTuner(); else startTuner(); });
     $("stopTunerBtn").addEventListener("click",stopTuner);
     $("playReferenceBtn").addEventListener("click",playTunerReference);
     $("noiseFilterBtn").addEventListener("click",toggleNoiseFilter);

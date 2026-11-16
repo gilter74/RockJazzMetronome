@@ -99,7 +99,11 @@ public class MainActivity extends Activity {
     }
 
     private void handleWebPermissionRequest(PermissionRequest request) {
-        if (!ASSET_HOST.equals(request.getOrigin().toString())) {
+        Uri origin = request.getOrigin();
+        boolean trustedLocalOrigin = origin != null
+                && "https".equalsIgnoreCase(origin.getScheme())
+                && "appassets.androidplatform.net".equalsIgnoreCase(origin.getHost());
+        if (!trustedLocalOrigin) {
             request.deny();
             return;
         }
@@ -111,9 +115,13 @@ public class MainActivity extends Activity {
             request.deny();
             return;
         }
-        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+        if (Build.VERSION.SDK_INT < 23
+                || checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
             request.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
         } else {
+            if (pendingAudioRequest != null && pendingAudioRequest != request) {
+                try { pendingAudioRequest.deny(); } catch (RuntimeException ignored) {}
+            }
             pendingAudioRequest = request;
             requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_AUDIO_PERMISSION);
         }

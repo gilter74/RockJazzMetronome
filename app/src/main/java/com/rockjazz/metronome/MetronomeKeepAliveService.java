@@ -44,7 +44,8 @@ public class MetronomeKeepAliveService extends Service {
     private int volume = 80;
     private boolean accentEnabled = true;
     private String soundType = "mechanical";
-    private long tickIndex = 0L;
+    private int beatPosition = 0;
+    private int subdivisionPosition = 0;
 
     @Override
     public void onCreate() {
@@ -87,7 +88,8 @@ public class MetronomeKeepAliveService extends Service {
 
     private synchronized void scheduleTicks() {
         if (tickTask != null) tickTask.cancel(false);
-        tickIndex = 0L;
+        beatPosition = 0;
+        subdivisionPosition = 0;
         double milliseconds = 60000.0 / bpm * (4.0 / denominator) / subdivisions;
         long periodNanos = Math.max(10_000_000L, (long) (milliseconds * 1_000_000.0));
         tickTask = scheduler.scheduleAtFixedRate(
@@ -97,10 +99,15 @@ public class MetronomeKeepAliveService extends Service {
     private void playTick() {
         if (volume <= 0 || toneGenerator == null) return;
 
-        long current = tickIndex++;
-        int subdivisionIndex = (int) (current % subdivisions);
-        int beatIndex = (int) ((current / subdivisions) % beatsPerBar);
-        boolean accent = accentEnabled && beatIndex == 0 && subdivisionIndex == 0;
+        // Explicit beat counters keep the accent on beat 1 of every measure.
+        boolean accent = accentEnabled && beatPosition == 0 && subdivisionPosition == 0;
+
+        subdivisionPosition++;
+        if (subdivisionPosition >= subdivisions) {
+            subdivisionPosition = 0;
+            beatPosition++;
+            if (beatPosition >= beatsPerBar) beatPosition = 0;
+        }
 
         int tone;
         int duration;
