@@ -158,6 +158,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        // If the Activity is actually closed, stop the keep-alive service to avoid a stale wake lock.
+        stopService(new Intent(this, MetronomeKeepAliveService.class));
         if (stopReceiver != null) {
             try { unregisterReceiver(stopReceiver); } catch (Exception ignored) {}
         }
