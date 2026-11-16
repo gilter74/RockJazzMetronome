@@ -8,8 +8,8 @@ android {
         applicationId = "com.rockjazz.metronome"
         minSdk = 23
         targetSdk = 35
-        versionCode = 1
-        versionName = "2.5.0"
+        versionCode = 38
+        versionName = "3.8.0"
     }
 
     buildTypes {
@@ -22,4 +22,8 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
+
+dependencies {
+    implementation("androidx.webkit:webkit:1.12.1")
 }
