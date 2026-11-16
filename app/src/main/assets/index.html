@@ -1552,6 +1552,24 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
     counterweight.setAttribute("transform", `translate(0 ${(-distance).toFixed(2)})`);
   }
 
+  function syncNativeMetronome() {
+    const bridge = window.MetroTunerBridge;
+    if (!isPlaying || !bridge || typeof bridge.updateMetronome !== "function") return;
+    try {
+      bridge.updateMetronome(
+        bpm,
+        Number(numerator.value),
+        Number(denominator.value),
+        Number(subdivision.value),
+        Number($("volume").value),
+        $("accentToggle").checked,
+        $("soundType").value
+      );
+    } catch (error) {
+      console.warn("Android metronom ayarları güncellenemedi:", error);
+    }
+  }
+
   function updateTempo(value, reschedule = true) {
     const nextBpm = clamp(Math.round(Number(value) || 120),20,300);
     if (isPlaying && audioCtx && reschedule && nextBpm !== bpm) {
@@ -1573,7 +1591,7 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
     $("tempoTerm").textContent = term.name;
     $("tempoDescription").textContent = termDescriptions[term.name][["tr","en","ru"].indexOf(currentLanguage)];
     updateWeightPosition();
-    if (isPlaying) statusText.textContent = tr("playingText").replace("{bpm}",bpm).replace("{term}",term.name);
+    if (isPlaying) { statusText.textContent = tr("playingText").replace("{bpm}",bpm).replace("{term}",term.name); syncNativeMetronome(); }
   }
 
   function initAudio() {
@@ -1620,6 +1638,9 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
   }
 
   function playClick(time,isAccent,isSubdivision) {
+    if (isPlaying && window.MetroTunerBridge
+        && typeof window.MetroTunerBridge.isAndroidApp === "function"
+        && window.MetroTunerBridge.isAndroidApp()) return;
     const volume = Number($("volume").value)/100;
     const strength = (isAccent ? 0.9 : 0.58) * volume * (isSubdivision ? 0.36 : 1);
     const type = $("soundType").value;
@@ -1740,7 +1761,17 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
 
     isPlaying = true;
     if (window.MetroTunerBridge && typeof window.MetroTunerBridge.startKeepAlive === "function") {
-      try { window.MetroTunerBridge.startKeepAlive(); } catch (nativeError) { console.warn("Android keep-alive başlatılamadı:", nativeError); }
+      try {
+        window.MetroTunerBridge.startKeepAlive(
+          bpm,
+          Number(numerator.value),
+          Number(denominator.value),
+          Number(subdivision.value),
+          Number($("volume").value),
+          $("accentToggle").checked,
+          $("soundType").value
+        );
+      } catch (nativeError) { console.warn("Android metronom servisi başlatılamadı:", nativeError); }
     }
     beatIndex = 0;
     completedBars = 0;
@@ -1788,6 +1819,7 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
     if (masterGain && audioCtx) {
       masterGain.gain.setTargetAtTime(value/100,audioCtx.currentTime,0.015);
     }
+    syncNativeMetronome();
   }
 
   function persistPresets() {
@@ -2693,7 +2725,9 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
       return;
     }
     lastFreeSound = $("soundType").value;
+    syncNativeMetronome();
   });
+  $("accentToggle").addEventListener("change",syncNativeMetronome);
 
   setupTuner();
   updatePlanUi();
