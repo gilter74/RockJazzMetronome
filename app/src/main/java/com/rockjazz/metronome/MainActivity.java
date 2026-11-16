@@ -179,22 +179,44 @@ public class MainActivity extends Activity {
 
     private class MetroTunerBridge {
         @JavascriptInterface
-        public void startKeepAlive() {
-            runOnUiThread(() -> {
-                Intent intent = new Intent(MainActivity.this, MetronomeKeepAliveService.class);
-                intent.setAction(MetronomeKeepAliveService.ACTION_START);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    startForegroundService(intent);
-                } else {
-                    startService(intent);
-                }
-            });
+        public boolean isAndroidApp() {
+            return true;
+        }
+
+        @JavascriptInterface
+        public void startKeepAlive(int bpm, int beatsPerBar, int denominator,
+                                   int subdivisions, int volume, boolean accent, String soundType) {
+            startOrUpdateNativeMetronome(bpm, beatsPerBar, denominator, subdivisions, volume, accent, soundType);
+        }
+
+        @JavascriptInterface
+        public void updateMetronome(int bpm, int beatsPerBar, int denominator,
+                                    int subdivisions, int volume, boolean accent, String soundType) {
+            startOrUpdateNativeMetronome(bpm, beatsPerBar, denominator, subdivisions, volume, accent, soundType);
         }
 
         @JavascriptInterface
         public void stopKeepAlive() {
-            runOnUiThread(() -> stopService(
-                    new Intent(MainActivity.this, MetronomeKeepAliveService.class)));
+            stopService(new Intent(MainActivity.this, MetronomeKeepAliveService.class));
+        }
+
+        private void startOrUpdateNativeMetronome(int bpm, int beatsPerBar, int denominator,
+                                                   int subdivisions, int volume, boolean accent,
+                                                   String soundType) {
+            Intent intent = new Intent(MainActivity.this, MetronomeKeepAliveService.class);
+            intent.setAction(MetronomeKeepAliveService.ACTION_START);
+            intent.putExtra(MetronomeKeepAliveService.EXTRA_BPM, bpm);
+            intent.putExtra(MetronomeKeepAliveService.EXTRA_BEATS, beatsPerBar);
+            intent.putExtra(MetronomeKeepAliveService.EXTRA_DENOMINATOR, denominator);
+            intent.putExtra(MetronomeKeepAliveService.EXTRA_SUBDIVISIONS, subdivisions);
+            intent.putExtra(MetronomeKeepAliveService.EXTRA_VOLUME, volume);
+            intent.putExtra(MetronomeKeepAliveService.EXTRA_ACCENT, accent);
+            intent.putExtra(MetronomeKeepAliveService.EXTRA_SOUND, soundType);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent);
+            } else {
+                startService(intent);
+            }
         }
     }
 }
