@@ -1,6 +1,6 @@
 # RockJazz MetroTuner — Android
 
-Bu Android uygulaması, RockJazz MetroTuner V3.8 web arayüzünü Android WebView içinde çalıştırır.
+Bu Android uygulaması, RockJazz MetroTuner V3.8 web arayüzünü Android WebView içinde çalıştırır. Yeni uygulama kimliği `com.rockjazz.metrotuner` olduğundan eski `com.rockjazz.metronome` uygulamasıyla yan yana kurulabilir.
 
 ## Bu dalda
 - V3.8 HTML, doğrudan Android assets içine alınır; web uygulamasının ayrı deposu değiştirilmez.
