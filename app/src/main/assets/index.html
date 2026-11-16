@@ -493,7 +493,7 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
         <option value="tr" selected>Türkçe</option><option value="ru">Русский</option><option value="en">English</option>
       </select>
     </label>
-    <div class="version">V3.8 • FIREBASE LİSANS</div>
+    <div class="version">V3.8</div>
   </div>
 </header>
 
@@ -992,7 +992,7 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
     </div>
     <div class="account-actions"><button class="primary" id="registerAccountBtn" type="button">Hesap oluştur</button><button id="loginAccountBtn" type="button">Giriş yap</button></div>
     <div class="account-message" id="authMessage" aria-live="polite"></div>
-    <p class="account-note">E-posta ve şifre Firebase Authentication ile doğrulanır. Şifreniz RockJazz tarafından görüntülenemez.</p>
+    <p class="account-note">E-posta ve şifreniz güvenli hesap girişi için kullanılır. Şifreniz RockJazz tarafından görüntülenemez.</p>
   </div>
   <div class="account-panel" id="signedInPanel" hidden>
     <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
@@ -1009,7 +1009,7 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
   </div>
   <div class="account-panel" id="adminPanel" hidden>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="color:#dce6f4">Yönetici Pro Paneli</b><span class="account-status pro">ADMIN</span></div>
-    <p class="account-note">Bu panel yalnızca Firebase'de role=admin olarak tanımlanmış kullanıcıya görünür.</p>
+    <p class="account-note">Bu panel yalnızca yönetici yetkisi tanımlanmış hesaba görünür.</p>
     <div style="font-weight:800;margin:12px 0 7px">Aktivasyon kodu oluştur</div>
     <div class="account-grid"><select id="licenseDuration"><option value="30">30 gün</option><option value="90">90 gün</option><option value="365">1 yıl</option><option value="0">Süresiz</option></select><button class="primary" id="createLicenseCodeBtn" type="button">Kod oluştur</button></div>
     <div class="account-message" id="createdCodeMessage" aria-live="polite"></div>
@@ -1044,7 +1044,7 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
 
   const translations = {
     tr: {
-      languageLabel:"DİL", brandSubtitle:"PROFESYONEL METRONOM VE AKORT", versionLabel:"V3.8 • FIREBASE LİSANS", instrumentAria:"Hareketli ahşap mekanik metronom", beatsAria:"Ölçü vuruşları", rhythmTitle:"RİTİM AYARLARI", soundTitle:"SES STÜDYOSU", rampTitle:"TEMPO ANTRENMANI", presetTitle:"KAYITLI TEMPOLAR", instrumentTitle:"MEKANİK SARKAÇLI METRONOM",
+      languageLabel:"DİL", brandSubtitle:"PROFESYONEL METRONOM VE AKORT", versionLabel:"V3.8", instrumentAria:"Hareketli ahşap mekanik metronom", beatsAria:"Ölçü vuruşları", rhythmTitle:"RİTİM AYARLARI", soundTitle:"SES STÜDYOSU", rampTitle:"TEMPO ANTRENMANI", presetTitle:"KAYITLI TEMPOLAR", instrumentTitle:"MEKANİK SARKAÇLI METRONOM",
       currentTempo:"GÜNCEL HIZ • DAKİKADAKİ VURUŞ SAYISI",
       minTempo:"20 BPM",maxTempo:"300 BPM",tapTempo:"RİTMİNE GÖRE AYARLA",
       stopMetronome:"DURDUR",statusReady:"Başlatmak için oynat tuşuna dokunun.",
@@ -1121,7 +1121,7 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
       tapSet:"Tap tempo: {bpm} BPM",soundTestError:"Sound test failed: ",startError:"Could not start audio: ",
       needPresetName:"Enter a name for the saved tempo first.",playingText:"Playing • {bpm} BPM • {term}",
       savePresetButton:"+ SAVE TEMPO",
-      brandSubtitle:"PROFESSIONAL METRONOME & TUNER",versionLabel:"V3.5 • PRO TEST BUILD",instrumentAria:"Moving wooden mechanical metronome",beatsAria:"Bar beats",
+      brandSubtitle:"PROFESSIONAL METRONOME & TUNER",versionLabel:"V3.8",instrumentAria:"Moving wooden mechanical metronome",beatsAria:"Bar beats",
       rhythmTitle:"RHYTHM SETTINGS",soundTitle:"SOUND STUDIO",rampTitle:"TEMPO TRAINING",presetTitle:"SAVED TEMPOS",
       helpButton:"HOW TO USE",guideLabel:"USER GUIDE",closeGuide:"Close guide",
       presetApply:"APPLY",presetDelete:"DELETE",presetEmpty:"You have not saved a custom tempo yet.",
@@ -1165,7 +1165,7 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
       tapSet:"Темп по касаниям: {bpm} BPM",soundTestError:"Ошибка проверки звука: ",startError:"Не удалось запустить звук: ",
       needPresetName:"Сначала введите название для сохранения темпа.",playingText:"Играет • {bpm} BPM • {term}",
       savePresetButton:"+ СОХРАНИТЬ ТЕМП",
-      brandSubtitle:"МЕТРОНОМ И ТЮНЕР",versionLabel:"V2.6 • СТУДИЯ",instrumentAria:"Деревянный механический метроном с движущимся маятником",beatsAria:"Доли такта",
+      brandSubtitle:"МЕТРОНОМ И ТЮНЕР",versionLabel:"V3.8",instrumentAria:"Деревянный механический метроном с движущимся маятником",beatsAria:"Доли такта",
       rhythmTitle:"НАСТРОЙКИ РИТМА",soundTitle:"НАСТРОЙКИ ЗВУКА",rampTitle:"ТРЕНИРОВКА ТЕМПА",presetTitle:"СОХРАНЁННЫЕ ТЕМПЫ",
       helpButton:"КАК ПОЛЬЗОВАТЬСЯ?",guideLabel:"РУКОВОДСТВО",closeGuide:"Закрыть руководство",
       presetApply:"ПРИМЕНИТЬ",presetDelete:"УДАЛИТЬ",presetEmpty:"Вы ещё не сохранили свой темп.",
@@ -2758,8 +2758,8 @@ function friendlyError(error) {
     "auth/too-many-requests":"Çok fazla deneme yapıldı. Bir süre sonra yeniden dene.",
     "auth/network-request-failed":"İnternet bağlantısını kontrol et.",
     "permission-denied":"Firestore yetkisi reddetti. Güvenlik kurallarını kontrol et.",
-    "functions/not-found":"Cloud Functions henüz bu Firebase projesine dağıtılmamış.",
-    "functions/failed-precondition":"Firebase tarafındaki kurulum adımlarını tamamla.",
+    "functions/not-found":"Lisans hizmeti şu anda kullanılamıyor.",
+    "functions/failed-precondition":"Hesap altyapısının kurulumunu kontrol et.",
     "functions/unauthenticated":"Önce hesabına giriş yap.",
     "functions/permission-denied":"Bu işlem için yönetici yetkisi gerekiyor."
   };
