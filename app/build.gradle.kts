@@ -8,8 +8,8 @@ android {
         applicationId = "com.rockjazz.metrotuner"
         minSdk = 23
         targetSdk = 35
-        versionCode = 1
-        versionName = "3.8.0"
+        versionCode = 2
+        versionName = "3.8.1"
     }
 
     buildTypes {
