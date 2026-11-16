@@ -2454,17 +2454,42 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
     tunerFrame = requestAnimationFrame(tunerLoop);
   }
   window.onNativeMicPermissionResult = function(granted) {
-    if (granted) {
-      $("tunerError").textContent = "";
-      startTuner();
-    } else {
-      $("tunerError").textContent = tr("tunerPermission") + " Android Ayarlar > Uygulamalar > RockJazz MetroTuner > İzinler > Mikrofon bölümünden izin verin.";
-    }
+    if (!granted) $("tunerError").textContent = tr("tunerPermission") + " Android uygulama ayarlarından mikrofon iznini açın.";
+  };
+  window.onNativeTunerStarted = function() {
+    tunerRunning = true;
+    $("tunerError").textContent = "";
+    $("startTunerBtn").textContent = tr("stopTuner");
+    $("stopTunerBtn").disabled = false;
+    $("tuneStatus").className = "tune-status waiting";
+    $("tuneStatus").textContent = tr("tunerListening");
+  };
+  window.onNativeTunerFrequency = function(frequency) {
+    if (!tunerRunning || !Number.isFinite(frequency)) return;
+    tunerLastFrequency = frequency;
+    updateTunerDisplay(frequency);
+  };
+  window.onNativeTunerNoSignal = function() {
+    if (!tunerRunning) return;
+    $("tuneStatus").className = "tune-status waiting";
+    $("tuneStatus").textContent = tr("tunerNoSignal");
+  };
+  window.onNativeTunerError = function(message) {
+    tunerRunning = false;
+    $("tunerError").textContent = message || "Android mikrofonu başlatılamadı.";
+    $("startTunerBtn").textContent = tr("startTuner");
+    $("stopTunerBtn").disabled = true;
   };
 
   async function startTuner() {
     if (tunerRunning) return;
     $("tunerError").textContent = "";
+    if (window.MetroTunerBridge && typeof window.MetroTunerBridge.startNativeTuner === "function") {
+      $("tuneStatus").className = "tune-status waiting";
+      $("tuneStatus").textContent = "Mikrofon otomatik başlatılıyor…";
+      window.MetroTunerBridge.startNativeTuner();
+      return;
+    }
     const nativeBridge = window.MetroTunerBridge;
     if (nativeBridge && typeof nativeBridge.hasRecordAudioPermission === "function"
         && typeof nativeBridge.requestRecordAudioPermission === "function"
@@ -2539,6 +2564,7 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
     }
   }
   function stopTuner() {
+    if (window.MetroTunerBridge && typeof window.MetroTunerBridge.stopNativeTuner === "function") window.MetroTunerBridge.stopNativeTuner();
     tunerRunning = false;
     cancelAnimationFrame(tunerFrame);
     if (tunerStream) tunerStream.getTracks().forEach(track => track.stop());
@@ -2637,7 +2663,7 @@ body.strobe-on .meter-pointer{filter:drop-shadow(0 0 6px #f4d17c)}
       $("tunerView").hidden = false;
       $("showTunerBtn").classList.add("active");
       $("showMetronomeBtn").classList.remove("active");
-      // Mikrofon, kullanıcının akort ekranındaki başlat düğmesine basmasıyla açılır.
+      if (!tunerRunning) startTuner();
     } else {
       stopTuner();
       $("tunerView").hidden = true;

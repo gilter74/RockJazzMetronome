@@ -8,6 +8,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
+import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.Bundle;
 import android.webkit.JavascriptInterface;
@@ -28,6 +31,10 @@ public class MainActivity extends Activity {
     private WebView webView;
     private PermissionRequest pendingAudioRequest;
     private boolean pendingNativeMicCallback = false;
+    private boolean pendingNativeMicStart = false;
+    private volatile boolean nativeMicRunning = false;
+    private AudioRecord nativeAudioRecord;
+    private Thread nativeMicThread;
     private WebViewAssetLoader assetLoader;
     private BroadcastReceiver stopReceiver;
 
@@ -157,9 +164,157 @@ public class MainActivity extends Activity {
 
             if (pendingNativeMicCallback && webView != null) {
                 pendingNativeMicCallback = false;
-                webView.evaluateJavascript(
-                        "window.onNativeMicPermissionResult && window.onNativeMicPermissionResult(" + granted + ")", null);
+                if (pendingNativeMicStart && granted) {
+                    pendingNativeMicStart = false;
+                    startNativeAudioCapture();
+                } else {
+                    pendingNativeMicStart = false;
+                    webView.evaluateJavascript(
+                            "window.onNativeMicPermissionResult && window.onNativeMicPermissionResult(" + granted + ")", null);
+                }
             }
+        }
+    }
+
+    // Native microphone capture avoids WebView getUserMedia/AudioRecord conflicts.
+    private void startNativeAudioCapture() {
+        stopNativeAudioCapture();
+        if (Build.VERSION.SDK_INT >= 23
+                && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            pendingNativeMicStart = true;
+            pendingNativeMicCallback = true;
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_AUDIO_PERMISSION);
+            return;
+        }
+
+        final int sampleRate = 44100;
+        final int minBytes = AudioRecord.getMinBufferSize(sampleRate,
+                AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
+        if (minBytes <= 0) {
+            notifyNativeTunerError("Telefonun mikrofonu başlatılamadı (ses donanımı kullanılamıyor).");
+            return;
+        }
+        final int bufferBytes = Math.max(minBytes * 2, 16384);
+        try {
+            nativeAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate,
+                    AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferBytes);
+            if (nativeAudioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
+                stopNativeAudioCapture();
+                notifyNativeTunerError("Android mikrofon kaydedicisi başlatılamadı.");
+                return;
+            }
+            nativeAudioRecord.startRecording();
+            if (nativeAudioRecord.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) {
+                stopNativeAudioCapture();
+                notifyNativeTunerError("Android mikrofonu kayıt durumuna geçemedi.");
+                return;
+            }
+        } catch (SecurityException | IllegalStateException ex) {
+            stopNativeAudioCapture();
+            notifyNativeTunerError("Mikrofon açılamadı: " + ex.getMessage());
+            return;
+        }
+
+        nativeMicRunning = true;
+        final AudioRecord recorder = nativeAudioRecord;
+        nativeMicThread = new Thread(() -> {
+            short[] samples = new short[4096];
+            runOnUiThread(() -> {
+                if (webView != null) webView.evaluateJavascript(
+                        "window.onNativeTunerStarted && window.onNativeTunerStarted()", null);
+            });
+            while (nativeMicRunning && recorder == nativeAudioRecord) {
+                int count;
+                try {
+                    count = recorder.read(samples, 0, samples.length, AudioRecord.READ_BLOCKING);
+                } catch (IllegalStateException ex) {
+                    break;
+                }
+                if (count > 2048) {
+                    double frequency = detectPitch(samples, count, sampleRate);
+                    if (frequency > 0) {
+                        final double detected = frequency;
+                        runOnUiThread(() -> {
+                            if (nativeMicRunning && webView != null) webView.evaluateJavascript(
+                                    "window.onNativeTunerFrequency && window.onNativeTunerFrequency(" + detected + ")", null);
+                        });
+                    } else {
+                        runOnUiThread(() -> {
+                            if (nativeMicRunning && webView != null) webView.evaluateJavascript(
+                                    "window.onNativeTunerNoSignal && window.onNativeTunerNoSignal()", null);
+                        });
+                    }
+                }
+            }
+        }, "RockJazzNativeTuner");
+        nativeMicThread.setPriority(Thread.MAX_PRIORITY);
+        nativeMicThread.start();
+    }
+
+    private double detectPitch(short[] data, int count, int sampleRate) {
+        final int minLag = sampleRate / 1200;
+        final int maxLag = Math.min(sampleRate / 50, count / 2);
+        double mean = 0;
+        for (int i = 0; i < count; i++) mean += data[i];
+        mean /= count;
+        double rms = 0;
+        for (int i = 0; i < count; i++) {
+            double v = data[i] - mean;
+            rms += v * v;
+        }
+        rms = Math.sqrt(rms / count);
+        if (rms < 90) return -1;
+
+        double[] scores = new double[maxLag + 1];
+        int bestLag = -1;
+        double bestScore = 0;
+        for (int lag = minLag; lag <= maxLag; lag++) {
+            double cross = 0, left = 0, right = 0;
+            int limit = count - lag;
+            for (int i = 0; i < limit; i++) {
+                double a = data[i] - mean;
+                double b = data[i + lag] - mean;
+                cross += a * b;
+                left += a * a;
+                right += b * b;
+            }
+            double score = cross / (Math.sqrt(left * right) + 1.0);
+            scores[lag] = score;
+            if (score > bestScore) {
+                bestScore = score;
+                bestLag = lag;
+            }
+        }
+        if (bestLag < 0 || bestScore < 0.62) return -1;
+        double shift = 0;
+        if (bestLag > minLag && bestLag < maxLag) {
+            double a = scores[bestLag - 1], b = scores[bestLag], c = scores[bestLag + 1];
+            double denom = a - 2 * b + c;
+            if (Math.abs(denom) > 1e-9) shift = 0.5 * (a - c) / denom;
+        }
+        double frequency = sampleRate / (bestLag + shift);
+        return (frequency >= 50 && frequency <= 1200) ? frequency : -1;
+    }
+
+    private void notifyNativeTunerError(String message) {
+        String safe = message.replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ");
+        runOnUiThread(() -> {
+            if (webView != null) webView.evaluateJavascript(
+                    "window.onNativeTunerError && window.onNativeTunerError('" + safe + "')", null);
+        });
+    }
+
+    private void stopNativeAudioCapture() {
+        nativeMicRunning = false;
+        Thread thread = nativeMicThread;
+        nativeMicThread = null;
+        if (nativeAudioRecord != null) {
+            try { nativeAudioRecord.stop(); } catch (RuntimeException ignored) {}
+            try { nativeAudioRecord.release(); } catch (RuntimeException ignored) {}
+            nativeAudioRecord = null;
+        }
+        if (thread != null && thread != Thread.currentThread()) {
+            try { thread.join(250); } catch (InterruptedException ex) { Thread.currentThread().interrupt(); }
         }
     }
 
@@ -183,6 +338,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         // If the Activity is actually closed, stop the keep-alive service to avoid a stale wake lock.
+        stopNativeAudioCapture();
         stopService(new Intent(this, MetronomeKeepAliveService.class));
         if (stopReceiver != null) {
             try { unregisterReceiver(stopReceiver); } catch (Exception ignored) {}
@@ -211,6 +367,25 @@ public class MainActivity extends Activity {
         public boolean hasRecordAudioPermission() {
             return Build.VERSION.SDK_INT < 23
                     || checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface
+        public void startNativeTuner() {
+            runOnUiThread(() -> {
+                if (Build.VERSION.SDK_INT >= 23
+                        && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    pendingNativeMicStart = true;
+                    pendingNativeMicCallback = true;
+                    requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQUEST_AUDIO_PERMISSION);
+                } else {
+                    startNativeAudioCapture();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void stopNativeTuner() {
+            runOnUiThread(() -> stopNativeAudioCapture());
         }
 
         @JavascriptInterface
