@@ -1,21 +1,21 @@
-# RockJazz Metronome – Android projesi
+# RockJazz MetroTuner — Android
 
-Bu proje, sağlanan RockJazz Profesyonel Metronom V2.5 HTML dosyasını internet gerektirmeden çalışan bir Android WebView uygulaması olarak paketler.
+Bu Android uygulaması, RockJazz MetroTuner V3.8 web arayüzünü Android WebView içinde çalıştırır.
 
-## APK oluşturma (Android Studio)
-1. Android Studio'yu bilgisayarınıza kurun.
-2. Bu ZIP dosyasını bir klasöre çıkarın.
-3. Android Studio'da **Open** ile `RockJazzMetronome` klasörünü seçin.
-4. Gradle eşitlemesi tamamlanınca **Build > Build Bundle(s) / APK(s) > Build APK(s)** seçin.
-5. APK şu klasörde oluşur: `app/build/outputs/apk/debug/app-debug.apk`
-6. APK'yı Android telefona gönderip kurun. Telefonda gerekirse bu kaynaktan uygulama yükleme izni verin.
+## Bu dalda
+- V3.8 HTML, doğrudan Android assets içine alınır; web uygulamasının ayrı deposu değiştirilmez.
+- WebViewAssetLoader, sayfayı HTTPS benzeri güvenli appassets origin'inde sunar.
+- Firebase Authentication ve Cloud Firestore modüler Web SDK'sı kullanılabilir.
+- Mikrofon erişimi için Android çalışma zamanı izni ve WebChromeClient izin köprüsü bulunur.
+- Metronom başladığında Foreground Service ve PARTIAL_WAKE_LOCK açılır; durdurulduğunda kapatılır. Bildirimden de metronom durdurulabilir.
+- Yeni uygulama adı ve gümüş/mavi uygulama simgesi.
 
-## Uygulama bilgileri
-- Paket: `com.rockjazz.metronome`
-- Sürüm: `2.5.0`
-- Minimum Android: 6.0 (API 23)
-- İnternet izni: yok; HTML uygulama içine gömülüdür.
-- Kayıtlı tempolar: Android WebView yerel depolamasında saklanır.
-- Ekran: tam ekran; metronom açıkken ekranın uykuya geçmesi engellenir.
+## Firebase notu
+Firebase Authentication > Settings > Authorized domains bölümüne gerekirse `appassets.androidplatform.net` alan adını ekleyin. E-posta/şifre girişi, Firestore ve mikrofonu gerçek cihazda test edin.
 
-Not: Bu teslim Android Studio kaynak projesidir. Bu çalışma ortamında Android SDK/Gradle kurulu olmadığı için imzalanmış veya kurulabilir APK derlenemedi. Android Studio ile yukarıdaki adımlarda APK üretilebilir.
+## APK üretimi
+GitHub Actions, `metrotuner-v3-android` dalına yapılan her push sonrasında debug APK üretir:
+Actions → Build RockJazz MetroTuner Android APK → son başarılı run → Artifacts → RockJazz-MetroTuner-APK.
+
+## Bilinen test gereksinimi
+Ekran kilitliyken metronomun kesintisiz sesi gerçek Android cihazında test edilmelidir. Foreground Service CPU'yu uyanık tutar ve WebView AudioContext'inin arka planda devam etmesini destekler; üretim sürümünden önce farklı Android sürümlerinde doğrulanmalıdır.
